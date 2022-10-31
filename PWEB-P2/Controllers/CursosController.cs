@@ -42,6 +42,28 @@ namespace PWEB_P2.Controllers
             );
         }
 
+        [HttpPost]
+        // POST: Cursos
+        public async Task<IActionResult> Index(string TextoAPesquisar)
+        {
+            ViewData["Title"] = "Lista de Cursos com '" + TextoAPesquisar + "'";
+
+            return View(await _context.Cursos
+                .Where(c => c.Nome.Contains(TextoAPesquisar) || c.Descricao.Contains(TextoAPesquisar)).ToListAsync());
+        }
+
+        // GET: Cursos/Search
+        public async Task<IActionResult> Search(string TextoAPesquisar)
+        {
+            ViewData["Title"] = "Lista de Cursos com '" + TextoAPesquisar + "'";
+
+            return View(
+                    from curso in _context.Cursos
+                    where curso.Nome.Contains(TextoAPesquisar) || curso.Descricao.Contains(TextoAPesquisar)
+                    select curso
+                );
+        }
+
         // GET: Cursos/Details/5
         public async Task<IActionResult> Details(int? id)
         {
@@ -71,7 +93,7 @@ namespace PWEB_P2.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Nome,Disponivel,Categoria,Descricao,DescricaoResumida,Requisitos,IdadeMinima")] Curso curso)
+        public async Task<IActionResult> Create([Bind("Id,Nome,Disponivel,Categoria,Descricao,DescricaoResumida,Requisitos,IdadeMinima,Preco")] Curso curso)
         {
             if (ModelState.IsValid)
             {
@@ -103,7 +125,7 @@ namespace PWEB_P2.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Nome,Disponivel,Categoria,Descricao,DescricaoResumida,Requisitos,IdadeMinima")] Curso curso)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Nome,Disponivel,Categoria,Descricao,DescricaoResumida,Requisitos,IdadeMinima,Preco")] Curso curso)
         {
             if (id != curso.Id)
             {

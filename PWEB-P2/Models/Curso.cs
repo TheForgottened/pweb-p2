@@ -10,5 +10,6 @@
         public string DescricaoResumida { get; set; }
         public string Requisitos { get; set; }
         public int IdadeMinima { get; set; }
+        public decimal? Preco { get; set; }
     }
 }
