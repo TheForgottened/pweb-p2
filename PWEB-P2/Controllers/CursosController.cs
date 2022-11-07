@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using PWEB_P2.Data;
 using PWEB_P2.Models;
+using PWEB_P2.ViewModels;
 
 namespace PWEB_P2.Controllers
 {
@@ -22,10 +23,12 @@ namespace PWEB_P2.Controllers
         // GET: Cursos
         public async Task<IActionResult> Index(bool? disponivel)
         {
+            ViewData["ListaDeCategorias"] = new SelectList(_context.Categorias.ToList(), "Id", "Nome");
+
             if (disponivel == null)
             {
                 ViewData["Title"] = "Lista de Todos os Cursos";
-                return View(await _context.Cursos.ToListAsync());
+                return View(await _context.Cursos.Include("Categoria").ToListAsync());
             }
 
             if (disponivel == true)
@@ -37,31 +40,67 @@ namespace PWEB_P2.Controllers
                 ViewData["Title"] = "Lista de Cursos Inactivos";
             }
 
-            return View(await _context.Cursos
+            return View(await _context.Cursos.Include("Categoria")
                 .Where(c => c.Disponivel == disponivel).ToListAsync()
             );
         }
 
         [HttpPost]
         // POST: Cursos
-        public async Task<IActionResult> Index(string TextoAPesquisar)
+        public async Task<IActionResult> Index(string TextoAPesquisar, int? CategoriaId)
         {
             ViewData["Title"] = "Lista de Cursos com '" + TextoAPesquisar + "'";
+            ViewData["ListaDeCategorias"] = new SelectList(_context.Categorias.ToList(), "Id", "Nome");
 
-            return View(await _context.Cursos
-                .Where(c => c.Nome.Contains(TextoAPesquisar) || c.Descricao.Contains(TextoAPesquisar)).ToListAsync());
+            if (CategoriaId == null)
+            {
+                return View(await _context.Cursos.Include("Categoria")
+                    .Where(c => c.Nome.Contains(TextoAPesquisar) || c.Descricao.Contains(TextoAPesquisar)).ToListAsync());
+            }
+
+            return View(await _context.Cursos.Include("Categoria")
+                .Where(c => (c.Nome.Contains(TextoAPesquisar) || c.Descricao.Contains(TextoAPesquisar)) && c.CategoriaId == CategoriaId).ToListAsync());
         }
 
         // GET: Cursos/Search
-        public async Task<IActionResult> Search(string TextoAPesquisar)
+        public async Task<IActionResult> Search(string? TextoAPesquisar)
         {
             ViewData["Title"] = "Lista de Cursos com '" + TextoAPesquisar + "'";
 
-            return View(
-                    from curso in _context.Cursos
-                    where curso.Nome.Contains(TextoAPesquisar) || curso.Descricao.Contains(TextoAPesquisar)
-                    select curso
-                );
+            var pesquisaVM = new PesquisaCursoViewModel();
+
+            if (string.IsNullOrWhiteSpace(TextoAPesquisar))
+            {
+                pesquisaVM.ListaDeCursos = await _context.Cursos.ToListAsync();
+                pesquisaVM.NumResultados = pesquisaVM.ListaDeCursos.Count;
+                return View(pesquisaVM);
+            }
+
+            pesquisaVM.ListaDeCursos = await _context.Cursos.Where(c => c.Nome.Contains(TextoAPesquisar) || c.Descricao.Contains(TextoAPesquisar)).ToListAsync();
+            pesquisaVM.NumResultados = pesquisaVM.ListaDeCursos.Count;
+
+            return View(pesquisaVM);
+        }
+
+        // POST: Cursos/Search
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Search([Bind("TextoAPesquisar")] PesquisaCursoViewModel pesquisaCurso)
+        {
+            ViewData["Title"] = "Lista de Cursos com '" + pesquisaCurso.TextoAPesquisar + "'";
+
+            if (string.IsNullOrWhiteSpace(pesquisaCurso.TextoAPesquisar))
+            {
+                pesquisaCurso.ListaDeCursos = await _context.Cursos.ToListAsync();
+                pesquisaCurso.NumResultados = pesquisaCurso.ListaDeCursos.Count;
+                return View(pesquisaCurso);
+            }
+
+            pesquisaCurso.ListaDeCursos = await _context.Cursos.Where(c => c.Nome.Contains(pesquisaCurso.TextoAPesquisar) || c.Descricao.Contains(pesquisaCurso.TextoAPesquisar)).ToListAsync();
+
+            pesquisaCurso.NumResultados = pesquisaCurso.ListaDeCursos.Count;
+
+            return View(pesquisaCurso);
         }
 
         // GET: Cursos/Details/5
@@ -72,7 +111,7 @@ namespace PWEB_P2.Controllers
                 return NotFound();
             }
 
-            var curso = await _context.Cursos
+            var curso = await _context.Cursos.Include("Categoria")
                 .FirstOrDefaultAsync(m => m.Id == id);
             if (curso == null)
             {
@@ -85,6 +124,7 @@ namespace PWEB_P2.Controllers
         // GET: Cursos/Create
         public IActionResult Create()
         {
+            ViewData["ListaDeCategorias"] = new SelectList(_context.Categorias.ToList(), "Id", "Nome");
             return View();
         }
 
@@ -93,8 +133,10 @@ namespace PWEB_P2.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Nome,Disponivel,Categoria,Descricao,DescricaoResumida,Requisitos,IdadeMinima,Preco")] Curso curso)
+        public async Task<IActionResult> Create([Bind("Id,Nome,Disponivel,Descricao,DescricaoResumida,Requisitos,IdadeMinima,Preco,CategoriaId")] Curso curso)
         {
+            ModelState.Remove(nameof(curso.Categoria));
+
             if (ModelState.IsValid)
             {
                 _context.Add(curso);
@@ -117,6 +159,9 @@ namespace PWEB_P2.Controllers
             {
                 return NotFound();
             }
+
+            ViewData["ListaDeCategorias"] = new SelectList(_context.Categorias.ToList(), "Id", "Nome");
+
             return View(curso);
         }
 
@@ -125,12 +170,14 @@ namespace PWEB_P2.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Nome,Disponivel,Categoria,Descricao,DescricaoResumida,Requisitos,IdadeMinima,Preco")] Curso curso)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Nome,Disponivel,Descricao,DescricaoResumida,Requisitos,IdadeMinima,Preco,CategoriaId")] Curso curso)
         {
             if (id != curso.Id)
             {
                 return NotFound();
             }
+
+            ModelState.Remove(nameof(curso.Categoria));
 
             if (ModelState.IsValid)
             {

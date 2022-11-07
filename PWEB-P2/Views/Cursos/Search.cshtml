@@ -1,34 +1,39 @@
-﻿@model IEnumerable<PWEB_P2.Models.Curso>
+﻿@model PWEB_P2.ViewModels.PesquisaCursoViewModel
 
 @{
     Layout = "~/Views/Shared/_Layout2.cshtml";
 }
 
-<h1>@ViewData["Title"]</h1>
+<h1>
+    @ViewData["Title"]
+    <small>(<a asp-action="Create">adicionar</a>)</small>
+</h1>
 
-<p>
-    <a asp-action="Create">Adicionar Curso</a>
-</p>
+<div class="row">
+    <div class="col-2">
+        <a asp-action="Index" asp-controller="Cursos" asp-route-disponivel="">Todos</a> |
+        <a asp-action="Index" asp-route-disponivel="true">Activos</a> |
+        <a asp-action="Index" asp-route-disponivel="false">Inactivos</a>
+    </div>
+    <div class="col-5">
+        <form method="post">
+            <label asp-for="TextoAPesquisar"></label>
+            <input asp-for="TextoAPesquisar">
+            <input type="submit" value="Pesquisar" />
+        </form>
+    </div>
+</div>
 
-<form method="get">
-    Pesquisa:
-    <input type="text" id="TextoAPesquisar" name="TextoAPesquisar">
-    
-    <input type="submit" value="Pesquisar" />
-</form>
-
-<a asp-action="Index" asp-controller="Cursos" asp-route-disponivel="">Todos</a> |
-<a asp-action="Index" asp-route-disponivel="true">Activos</a> |
-<a asp-action="Index" asp-route-disponivel="false">Inactivos</a>
+<p>Existe(m) @Model.NumResultados curso(s)</p>
 
 <table class="table table-bordered table-striped table-hover">
     <thead>
         <tr>
             <th>
-                @Html.DisplayNameFor(model => model.Nome)
+                @Html.DisplayNameFor(model => model.ListaDeCursos.FirstOrDefault().Nome)
             </th>
             <th>
-                @Html.DisplayNameFor(model => model.Disponivel)
+                @Html.DisplayNameFor(model => model.ListaDeCursos.FirstOrDefault().Disponivel)
             </th>
             @*
             <th>
@@ -51,7 +56,7 @@
         </tr>
     </thead>
     <tbody>
-@foreach (var item in Model) {
+@foreach (var item in Model.ListaDeCursos) {
         <tr>
             <td>
                 @Html.DisplayFor(modelItem => item.Nome)
