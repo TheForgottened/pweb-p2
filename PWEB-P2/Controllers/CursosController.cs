@@ -68,6 +68,7 @@ namespace PWEB_P2.Controllers
             ViewData["Title"] = "Lista de Cursos com '" + TextoAPesquisar + "'";
 
             var pesquisaVM = new PesquisaCursoViewModel();
+            pesquisaVM.TextoAPesquisar = TextoAPesquisar;
 
             if (string.IsNullOrWhiteSpace(TextoAPesquisar))
             {
