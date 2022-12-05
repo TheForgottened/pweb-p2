@@ -12,7 +12,6 @@ using PWEB_P2.Models;
 
 namespace PWEB_P2.Controllers
 {
-    [Authorize(Roles = "Admin")]
     public class CategoriasController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -47,6 +46,7 @@ namespace PWEB_P2.Controllers
         }
 
         // GET: Categorias/Create
+        [Authorize(Roles = "Admin")]
         public IActionResult Create()
         {
             return View();
@@ -57,6 +57,7 @@ namespace PWEB_P2.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Create([Bind("Id,Nome,Descricao,Disponivel")] Categoria categoria)
         {
             if (ModelState.IsValid)
@@ -69,6 +70,7 @@ namespace PWEB_P2.Controllers
         }
 
         // GET: Categorias/Edit/5
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null || _context.Categorias == null)
@@ -89,6 +91,7 @@ namespace PWEB_P2.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Nome,Descricao,Disponivel")] Categoria categoria)
         {
             if (id != categoria.Id)
@@ -120,6 +123,7 @@ namespace PWEB_P2.Controllers
         }
 
         // GET: Categorias/Delete/5
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null || _context.Categorias == null)
@@ -140,6 +144,7 @@ namespace PWEB_P2.Controllers
         // POST: Categorias/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             if (_context.Categorias == null)

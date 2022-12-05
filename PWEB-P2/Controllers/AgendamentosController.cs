@@ -59,7 +59,7 @@ namespace PWEB_P2.Controllers
         }
 
         // GET: Agendamentos/Create
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Cliente")]
         public IActionResult Create()
         {
             ViewData["TipoDeAulaId"] = new SelectList(_context.TipoDeAulas, "Id", "Id");
@@ -71,7 +71,7 @@ namespace PWEB_P2.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Cliente")]
         public async Task<IActionResult> Create([Bind("Id,DataInicio,DataFim,DuracaoHoras,DuracaoMinutos,Preco,DataHoraDoPedido,TipoDeAulaId")] Agendamento agendamento)
         {
             ModelState.Remove(nameof(agendamento.tipoDeAula));
