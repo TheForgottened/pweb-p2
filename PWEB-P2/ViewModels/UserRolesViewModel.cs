@@ -14,6 +14,8 @@ namespace PWEB_P2.ViewModels
 
         [Display(Name = "Email")]
         public string UserName { get; set; }
+
+        public byte[]? Avatar { get; set; }
         public IEnumerable<string> Roles { get; set; }
     }
 }

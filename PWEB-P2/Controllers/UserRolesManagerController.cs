@@ -31,6 +31,7 @@ namespace PWEB_P2.Controllers
                         PrimeiroNome = user.PrimeiroNome,
                         UltimoNome = user.UltimoNome,
                         UserName = user.UserName,
+                        Avatar = user.Avatar,
                         Roles = await _userManager.GetRolesAsync(user)
                     }
                 );
@@ -57,6 +58,7 @@ namespace PWEB_P2.Controllers
             }
 
             ViewBag.UserName = user.UserName;
+            ViewBag.Avatar = user.Avatar;
 
             foreach (var role in roles)
             {

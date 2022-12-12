@@ -4,6 +4,7 @@
 
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
@@ -66,6 +67,10 @@ namespace PWEB_P2.Areas.Identity.Pages.Account.Manage
             [DataType(DataType.Date)]
             public DateTime DataNascimento { get; set; }
             public int NIF { get; set; }
+
+            [Display(Name = "O meu Avatar")]
+            public byte[] Avatar { get; set; }
+            public IFormFile AvatarFile { get; set; }
         }
 
         private async Task LoadAsync(ApplicationUser user)
@@ -81,7 +86,8 @@ namespace PWEB_P2.Areas.Identity.Pages.Account.Manage
                 PrimeiroNome = user.PrimeiroNome,
                 UltimoNome = user.UltimoNome,
                 DataNascimento = user.DataNascimento,
-                NIF = user.NIF
+                NIF = user.NIF,
+                Avatar = user.Avatar
             };
         }
 
@@ -127,11 +133,43 @@ namespace PWEB_P2.Areas.Identity.Pages.Account.Manage
             user.DataNascimento = Input.DataNascimento;
             user.NIF = Input.NIF;
 
+            var avatarImg = Input.AvatarFile;
+            if (avatarImg != null)
+            {
+                if (avatarImg.Length > (200 * 1024))
+                {
+                    StatusMessage = "Ficheiro demasiado grande!";
+                    return RedirectToPage();
+                }
+
+                if (!IsValidFileType(avatarImg.Name))
+                {
+                    StatusMessage = "Formato de ficheiro inválido!";
+                    return RedirectToPage();
+                }
+
+                using var dataStream = new MemoryStream();
+                await avatarImg.CopyToAsync(dataStream);
+                user.Avatar = dataStream.ToArray();
+            }
+
             await _userManager.UpdateAsync(user);
 
             await _signInManager.RefreshSignInAsync(user);
             StatusMessage = "Your profile has been updated";
             return RedirectToPage();
+        }
+
+        public bool IsValidFileType(string fileName)
+        {
+            var ext = Path.GetExtension(fileName);
+            return ext.ToLower() switch
+            {
+                ".png" => true,
+                ".jpeg" => true,
+                ".jpg" => true,
+                _ => false
+            };
         }
     }
 }

@@ -11,28 +11,40 @@
 
 <table class="table table-striped table-hover">
     <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.PrimeiroNome)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.UltimoNome)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.UserName)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Roles)
-            </th>
-            <th>
-                Action
-            </th>
-        </tr>
+    <tr>
+        <th>
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.PrimeiroNome)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.UltimoNome)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.UserName)
+        </th>
+        <th>
+            @Html.DisplayNameFor(model => model.Roles)
+        </th>
+        <th>
+            Action
+        </th>
+    </tr>
     </thead>
     <tbody>
         @foreach (var item in Model)
         {
             <tr>
+                <td>
+                    @if (item.Avatar?.Length > 0)
+                    {
+                        <img class="img-thumbnail" style="max-width: 100px; max-height: 100px" src="data:image/*;base64,@(Convert.ToBase64String(item.Avatar))">
+                    }
+                    else
+                    {
+                        <img class="img-thumbnail" style="max-width: 100px; max-height: 100px" src="/img/default_user.png">
+                    }
+                </td>
                 <td>
                     @Html.DisplayFor(modelItem => item.PrimeiroNome)
                 </td>
