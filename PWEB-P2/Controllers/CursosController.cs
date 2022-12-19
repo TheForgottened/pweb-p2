@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using PWEB_P2.Data;
+using PWEB_P2.Helpers;
 using PWEB_P2.Models;
 using PWEB_P2.ViewModels;
 
@@ -15,6 +16,7 @@ namespace PWEB_P2.Controllers
 {
     public class CursosController : Controller
     {
+        private readonly string _cursosPath = "wwwroot/ficheiros/Cursos/";
         private readonly ApplicationDbContext _context;
 
         public CursosController(ApplicationDbContext context)
@@ -121,6 +123,15 @@ namespace PWEB_P2.Controllers
                 return NotFound();
             }
 
+            var coursePath = Path.Combine(Directory.GetCurrentDirectory(), _cursosPath + id.ToString());
+
+            var files = new List<string>();
+
+            if (Directory.Exists(coursePath))
+                files = (from file in Directory.EnumerateFiles(coursePath) select $"{_cursosPath[7..]}{id}/{Path.GetFileName(file)}").ToList();
+
+            ViewData["Ficheiros"] = files;
+
             return View(curso);
         }
 
@@ -168,7 +179,43 @@ namespace PWEB_P2.Controllers
 
             ViewData["ListaDeCategorias"] = new SelectList(_context.Categorias.ToList(), "Id", "Nome");
 
+            var coursePath = Path.Combine(Directory.GetCurrentDirectory(), _cursosPath + id.ToString());
+
+            var files = new List<string>();
+
+            if (Directory.Exists(coursePath))
+                files = (from file in Directory.EnumerateFiles(coursePath) select $"{_cursosPath[7..]}{id}/{Path.GetFileName(file)}").ToList();
+
+            ViewData["Ficheiros"] = files;
+
             return View(curso);
+        }
+
+        public async Task<IActionResult> DeleteImage(int? id, string? image)
+        {
+            if (id == null || _context.Cursos == null)
+            {
+                return NotFound();
+            }
+
+            var curso = await _context.Cursos.FindAsync(id);
+            if (curso == null)
+            {
+                return NotFound();
+            }
+
+            var filePath = Path.Combine(Directory.GetCurrentDirectory(), $"wwwroot/{image}");
+
+            try
+            {
+                System.IO.File.Delete(filePath);
+            }
+            catch
+            {
+                return NotFound();
+            }
+
+            return RedirectToAction("Edit", new { Id = id });
         }
 
         // POST: Cursos/Edit/5
@@ -177,7 +224,7 @@ namespace PWEB_P2.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Nome,Disponivel,Descricao,DescricaoResumida,Requisitos,IdadeMinima,Preco,CategoriaId")] Curso curso)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Nome,Disponivel,Descricao,DescricaoResumida,Requisitos,IdadeMinima,Preco,CategoriaId")] Curso curso, [FromForm] List<IFormFile> ficheiros)
         {
             if (id != curso.Id)
             {
@@ -192,6 +239,28 @@ namespace PWEB_P2.Controllers
                 {
                     _context.Update(curso);
                     await _context.SaveChangesAsync();
+
+                    var path = Path.Combine(Directory.GetCurrentDirectory(), _cursosPath);
+                    if (!Directory.Exists(path))
+                        Directory.CreateDirectory(path);
+
+                    var coursePath = Path.Combine(Directory.GetCurrentDirectory(), $"{_cursosPath}{id}");
+                    if (!Directory.Exists(coursePath))
+                        Directory.CreateDirectory(coursePath);
+
+                    foreach (var formFile in ficheiros)
+                    {
+                        if (formFile.Length <= 0) continue;
+                        
+                        var filePath = Path.Combine(coursePath, $"{Guid.NewGuid()}{Path.GetExtension(formFile.FileName)}");
+                        while (System.IO.File.Exists(filePath))
+                        {
+                            filePath = Path.Combine(coursePath, $"{Guid.NewGuid()}{Path.GetExtension(formFile.FileName)}");
+                        }
+
+                        await using var stream = System.IO.File.Create(filePath);
+                        await formFile.CopyToAsync(stream);
+                    }
                 }
                 catch (DbUpdateConcurrencyException)
                 {
@@ -206,7 +275,7 @@ namespace PWEB_P2.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            return View(curso);
+            return RedirectToAction(nameof(Edit), new { Id = id });
         }
 
         // GET: Cursos/Delete/5
@@ -226,6 +295,110 @@ namespace PWEB_P2.Controllers
             }
 
             return View(curso);
+        }
+
+        public async Task<IActionResult> Comprar(int? id)
+        {
+            if (id == null || _context.Cursos == null)
+            {
+                return NotFound();
+            }
+
+            var curso = await _context.Cursos
+                .Include("Categoria")
+                .FirstOrDefaultAsync(m => m.Id == id);
+            if (curso == null)
+            {
+                return NotFound();
+            }
+
+            var carrinhoDeCompras = HttpContext.Session.GetJson<Carrinho>("CarrinhoDeCompras") ?? new Carrinho();
+            carrinhoDeCompras.AddItem(curso, 1);
+            HttpContext.Session.SetJson("CarrinhoDeCompras", carrinhoDeCompras);
+
+            return RedirectToAction(nameof(Carrinho));
+        }
+
+        public async Task<IActionResult> Carrinho()
+        {
+            var carrinhoDeCompras = HttpContext.Session.GetJson<Carrinho>("CarrinhoDeCompras") ?? new Carrinho();
+            return View(carrinhoDeCompras);
+        }
+
+        public async Task<IActionResult> AlterarQuantidadeCarrinhoItem(int cursoId, int quantidade)
+        {
+            var carrinhoDeCompras = HttpContext.Session.GetJson<Carrinho>("CarrinhoDeCompras") ?? new Carrinho();
+
+            var item = carrinhoDeCompras.items.First(i => i.CursoId == cursoId);
+            if (item == null)
+            {
+                return NotFound();
+            }
+
+            item.Quantidade += quantidade;
+            if (item.Quantidade <= 0)
+            {
+                return await RemoverCarrinhoItem(cursoId);
+            }
+
+            HttpContext.Session.SetJson("CarrinhoDeCompras", carrinhoDeCompras);
+            return RedirectToAction(nameof(Carrinho));
+        }
+
+        public async Task<IActionResult> RemoverCarrinhoItem(int cursoId)
+        {
+            var carrinhoDeCompras = HttpContext.Session.GetJson<Carrinho>("CarrinhoDeCompras") ?? new Carrinho();
+
+            carrinhoDeCompras.RemoveItem(cursoId);
+
+            HttpContext.Session.SetJson("CarrinhoDeCompras", carrinhoDeCompras);
+            return RedirectToAction(nameof(Carrinho));
+        }
+
+        // GET: Cursos/GraficoVendas
+        public async Task<IActionResult> GraficoVendas()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        // POST: Cursos/GraficoVendas
+        public async Task<IActionResult> GetDadosVendas()
+        {
+            //dados de exemplo
+            List<object> dados = new List<object>();
+            DataTable dt = new DataTable();
+            dt.Columns.Add("Cursos", System.Type.GetType("System.String"));
+            dt.Columns.Add("Quantidade", System.Type.GetType("System.Int32"));
+            DataRow dr = dt.NewRow();
+            dr["Cursos"] = "CATEGORIA AM (Ciclomotor)";
+            dr["Quantidade"] = 12;
+            dt.Rows.Add(dr);
+            dr = dt.NewRow();
+            dr["Cursos"] = "CATEGORIA A1 (Motociclo - 11kw/125cc)";
+            dr["Quantidade"] = 96;
+            dt.Rows.Add(dr);
+            dr = dt.NewRow();
+            dr["Cursos"] = "CATEGORIA A2\r\n(Motociclo - 35kw)";
+            dr["Quantidade"] = 87;
+            dt.Rows.Add(dr);
+            dr = dt.NewRow();
+            dr["Cursos"] = "CATEGORIA B1\r\n(Quadriciclo)";
+            dr["Quantidade"] = 67;
+            dt.Rows.Add(dr);
+            dr = dt.NewRow();
+            dr["Cursos"] = "CATEGORIA B\r\n(Ligeiro Caixa Automática)";
+            dr["Quantidade"] = 63;
+            dt.Rows.Add(dr);
+
+            foreach (DataColumn dc in dt.Columns)
+            {
+                List<object> x = new List<object>();
+                x = (from DataRow drr in dt.Rows select drr[dc.ColumnName]).ToList();
+                dados.Add(x);
+            }
+
+            return Json(dados);
         }
 
         // POST: Cursos/Delete/5

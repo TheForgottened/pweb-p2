@@ -7,6 +7,36 @@
 
 <h2 class="pb-2 border-bottom">@Model.Nome</h2>
 <p>@Html.Raw(Model.Descricao.Replace(Environment.NewLine, "<br />"))</p>
+
+<div class="row">
+    <div class="col-6"><p>@Html.Raw(Model.Descricao.ToString().Replace(Environment.NewLine, "<br />"))</p></div>
+    <div class="col-6">
+        <div id="carouselExampleControls" class="carousel slide" data-bs-ride="carousel">
+            <div class="carousel-inner">
+                @{
+                    var qtd = 0;
+                    foreach (var file in ViewBag.Ficheiros)
+                    {
+                        var style = qtd == 0 ? "active" : "";
+                        <div class="carousel-item @style">
+                            <img src="@file" class="d-block w-100" alt="...">
+                        </div>
+                        qtd++;
+                    }
+                }
+            </div>
+            <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleControls" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Previous</span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#carouselExampleControls" data-bs-slide="next">
+                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Next</span>
+            </button>
+        </div>
+    </div>
+</div>
+
 <div class="row g-4 py-5 row-cols-1 row-cols-lg-2">
 
     <div class="feature col">
